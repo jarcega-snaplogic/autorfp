@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFP Completion App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        #loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        #rfpSelect {
+            padding: 0;
+            overflow-y: auto;
+        }
+        #rfpSelect option {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        #rfpSelect option:last-child {
+            border-bottom: none;
+        }
+        .rfp-name {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .owner-name {
+            color: #3498db;
+            font-style: italic;
+            font-size: 0.9em;
+            display: block;
+            margin-left: 30px;
+        }
+        #rfpInfo {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e8f4f8;
+            border-radius: 4px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>RFP Completion App</h1>
+        <form id="rfpForm">
+            <label for="rfpSelect">Select RFP:</label>
+            <select id="rfpSelect" required size="5"></select>
+
+            <div id="rfpInfo"></div>
+
+            <label for="userSelect">Select User:</label>
+            <select id="userSelect" required></select>
+
+            <button type="submit" id="submitBtn">Submit</button>
+        </form>
+        <div id="loading">
+            <div class="spinner"></div>
+            <p>Processing your request...</p>
+        </div>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        const rfpSelect = document.getElementById('rfpSelect');
+        const userSelect = document.getElementById('userSelect');
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingDiv = document.getElementById('loading');
+        const messageDiv = document.getElementById('message');
+        const rfpInfoDiv = document.getElementById('rfpInfo');
+
+        let rfpData = [];
+
+        // Fetch RFP projects
+        fetch('https://emea.snaplogic.com/api/1/rest/slsched/feed/ConnectFasterInc/snapLogic4snapLogic/AutoRFP/getLoopioProjects', {
+            headers: {
+                'Authorization': 'Bearer FwSAtTsYlV0h7zi1P8leqdexq3RomiiK'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            rfpData = data;
+            data.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project.id;
+                option.innerHTML = `<span class="rfp-name">${project.name}</span>`;
+                rfpSelect.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Error fetching RFP projects:', error));
+
+        // Fetch Loopio users
+        fetch('https://emea.snaplogic.com/api/1/rest/slsched/feed/ConnectFasterInc/snapLogic4snapLogic/AutoRFP/detLoopioUsers', {
+            headers: {
+                'Authorization': 'Bearer MVTHsXLWS43V9ZLnia5PqFa6xorDUnhO'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.email;
+                option.textContent = user.firstName;
+                userSelect.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Error fetching Loopio users:', error));
+
+        // Update RFP info and user selection when an RFP is selected
+        rfpSelect.addEventListener('change', function() {
+            const selectedRFP = rfpData.find(rfp => rfp.id == this.value);
+            if (selectedRFP) {
+                rfpInfoDiv.innerHTML = `
+                    <p><strong>Created Date:</strong> ${new Date(selectedRFP.createdDate).toLocaleString()}</p>
+                    <p><strong>Due Date:</strong> ${new Date(selectedRFP.dueDate).toLocaleString()}</p>
+                    <p><strong>Owner:</strong> ${selectedRFP.owner.name}</p>
+                `;
+                rfpInfoDiv.style.display = 'block';
+
+                // Update user selection to RFP owner
+                const ownerOption = Array.from(userSelect.options).find(option => option.textContent === selectedRFP.owner.name);
+                if (ownerOption) {
+                    userSelect.value = ownerOption.value;
+                }
+            } else {
+                rfpInfoDiv.style.display = 'none';
+            }
+        });
+
+        // Form submission
+        document.getElementById('rfpForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitBtn.disabled = true;
+            loadingDiv.style.display = 'block';
+            messageDiv.innerHTML = '';
+
+            const selectedRFP = rfpData.find(rfp => rfp.id == rfpSelect.value);
+            const queryParams = new URLSearchParams({
+                name: userSelect.options[userSelect.selectedIndex].text,
+                email: userSelect.value,
+                projectId: rfpSelect.value,
+                projectName: selectedRFP ? selectedRFP.name : ''
+            }).toString();
+
+            fetch(`https://emea.snaplogic.com/api/1/rest/slsched/feed/ConnectFasterInc/snapLogic4snapLogic/AutoRFP/triggerLoopioAutoRFP?${queryParams}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer xjgNDSj5mv726VRurwJKmbgWiRVKnIZu'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    messageDiv.innerHTML = 'Your request has been accepted. The completion process can take about a minute per question, typically between 30 minutes and 2 hours based on the size of the request. You will be notified by email and Slack once the process has completed.';
+                    messageDiv.className = 'success';
+                } else {
+                    throw new Error('Network response was not ok.');
+                }
+            })
+            .catch(error => {
+                messageDiv.innerHTML = 'An error occurred while submitting your request. Please try again.';
+                messageDiv.className = 'error';
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                loadingDiv.style.display = 'none';
+            });
+        });
+    </script>
+</body>
+</html>
+</html>
