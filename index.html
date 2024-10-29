@@ -109,17 +109,47 @@
             margin-left: 30px;
         }
         #rfpInfo {
-            margin-top: 20px;
+            margin-top: 0px;
+            margin-bottom: 20px;
             padding: 10px;
             background-color: #e8f4f8;
             border-radius: 4px;
             display: none;
+        }
+        .description {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+        .description h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            font-size: 1.2em;
+        }
+        .description p {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        .description ul {
+            margin: 10px 0;
+            padding-left: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>RFP Completion App</h1>
+        
+        <div class="description">
+            <p>This application helps automate the completion of RFP questionnaires. Here's what you need to know:</p>
+            <ul>
+                <li>Before using this tool, ensure you have parsed your project in Loopio as you normally would.</li>
+                <li>The automation will only process questions that haven't been answered yet.</li>
+                <li>Once the process is complete, you will need to review the provided answers and either mark them as completed or make necessary corrections before exporting the RFP.</li>
+			</ul>
+		</div>
         <form id="rfpForm">
             <label for="rfpSelect">Select RFP:</label>
             <select id="rfpSelect" required size="5"></select>
@@ -205,44 +235,51 @@
         });
 
         // Form submission
-        document.getElementById('rfpForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            submitBtn.disabled = true;
-            loadingDiv.style.display = 'block';
-            messageDiv.innerHTML = '';
+            document.getElementById('rfpForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitBtn.disabled = true;
+                loadingDiv.style.display = 'block';
+                messageDiv.innerHTML = '';
 
-            const selectedRFP = rfpData.find(rfp => rfp.id == rfpSelect.value);
-            const queryParams = new URLSearchParams({
-                name: userSelect.options[userSelect.selectedIndex].text,
-                email: userSelect.value,
-                projectId: rfpSelect.value,
-                projectName: selectedRFP ? selectedRFP.name : ''
-            }).toString();
+                const selectedRFP = rfpData.find(rfp => rfp.id == rfpSelect.value);
+                const queryParams = new URLSearchParams({
+                    name: userSelect.options[userSelect.selectedIndex].text,
+                    email: userSelect.value,
+                    projectId: rfpSelect.value,
+                    projectName: selectedRFP ? selectedRFP.name : ''
+                }).toString();
 
-            fetch(`https://emea.snaplogic.com/api/1/rest/slsched/feed/ConnectFasterInc/snapLogic4snapLogic/AutoRFP/triggerLoopioAutoRFP?${queryParams}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': 'Bearer xjgNDSj5mv726VRurwJKmbgWiRVKnIZu'
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    messageDiv.innerHTML = 'Your request has been accepted. The completion process can take about a minute per question, typically between 30 minutes and 2 hours based on the size of the request. You will be notified by email and Slack once the process has completed.';
-                    messageDiv.className = 'success';
-                } else {
-                    throw new Error('Network response was not ok.');
-                }
-            })
-            .catch(error => {
-                messageDiv.innerHTML = 'An error occurred while submitting your request. Please try again.';
-                messageDiv.className = 'error';
-                console.error('Error:', error);
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
-                loadingDiv.style.display = 'none';
+                fetch(`https://emea.snaplogic.com/api/1/rest/slsched/feed/ConnectFasterInc/snapLogic4snapLogic/AutoRFP/triggerLoopioAutoRFP?${queryParams}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer xjgNDSj5mv726VRurwJKmbgWiRVKnIZu'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.message) {
+                        messageDiv.innerHTML = data.message;
+                        messageDiv.className = 'success';
+                    } else {
+                        messageDiv.innerHTML = 'Request processed successfully. Please wait for email and Slack notifications.';
+                        messageDiv.className = 'success';
+                    }
+                })
+                .catch(error => {
+                    messageDiv.innerHTML = 'The application might be under maintenance. Please reach out to Jocelyn Arcega for assistance.';
+                    messageDiv.className = 'error';
+                    console.error('Error:', error);
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    loadingDiv.style.display = 'none';
+                });
             });
-        });
     </script>
 </body>
 </html>
