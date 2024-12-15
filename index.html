@@ -249,7 +249,7 @@
                     projectName: selectedRFP ? selectedRFP.name : ''
                 }).toString();
 
-                fetch(`https://prodeu-connectfasterinc-cloud-fm.emea.snaplogic.io/api/1/rest/feed/ConnectFasterInc/apim/AutoRFP/2.0/triggerLoopioAutoRFP?${queryParams}`, {
+                fetch(`https://prodeu-connectfasterinc-cloud-fm.emea.snaplogic.io/api/1/rest/feed/ConnectFasterInc/apim/AutoRFP/2.0/ExecuteRfpAutomate?${queryParams}`, {
                     method: 'GET',
                     headers: {
                         'Authorization': 'Bearer c4c561ccdcfe625ce03b43a397c09c87'
